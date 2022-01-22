@@ -1,0 +1,135 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Math.jack
+
+/**
+ * A library of commonly used mathematical functions.
+ * Note: Jack compilers implement multiplication and division using OS method calls.
+ */
+class Math {
+
+    /** Initializes the library. */
+    function void init() {
+    }
+
+    /** Returns the absolute value of x. */
+    function int abs(int x) {
+        if (x < 0) {
+            return -x;
+        }
+        return x;
+    }
+
+    /** Returns the product of x and y. 
+     *  When a Jack compiler detects the multiplication operator '*' in the 
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x*y and multiply(x,y) return the same value.
+     */
+    function int multiply(int x, int y) {
+        var int ans;
+        var boolean is_neg;
+        let is_neg = false;
+        let ans = 0;
+
+        if (x < 0) {
+            let is_neg = ~is_neg;
+            let x = -x;
+        }
+        if (y < 0) {
+            let is_neg = ~is_neg;
+            let y = -y;
+        }
+
+        while (x > 0) {
+            if ((x & 1) > 0) {
+                let ans = ans + y;
+            }
+            let x = #x;
+            let y = ^y;
+        }
+        if (is_neg) {
+            let ans = -ans;
+        }
+        return ans;
+    }
+
+    /** Returns the integer part of x/y.
+     *  When a Jack compiler detects the multiplication operator '/' in the 
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x/y and divide(x,y) return the same value.
+     */
+    function int divide(int x, int y) {
+        var int ans;
+        var boolean is_neg;
+        let is_neg = false;
+        let ans = 0;
+
+        if (x < 0) {
+            let is_neg = ~is_neg;
+            let x = -x;
+        }
+        if (y < 0) {
+            let is_neg = ~is_neg;
+            let y = -y;
+        }
+        while (y < x) { let y = ^y; } // O(n_x) operations at most
+        while ((x > 0) & (y > 0)) { // O(n_y) operations at most
+
+            let ans = ^ans;
+            if (y < x) {
+                let x = x - y;
+                let ans = ans + 1;
+            }
+            let y = #y;
+
+        }
+
+        if (is_neg) {
+            let ans = -ans;
+        }
+        return ans;
+    }
+
+    /** Returns the integer part of the square root of x. */
+    function int sqrt(int x) { // Assumes un-signed number
+        var int low, high, med, med_sq;
+        if (x > 64516) { // = 254**2
+            return 255; // Edge case to avoid overflows
+        }
+        let low = 0;
+        let high = 254;
+        while (low < high) {
+            let med = #(low + high);
+            let med_sq = med*med;
+            if (med_sq > x) {
+                let high = med;
+            } else {
+                if (med_sq < x) {
+                    let low = med;
+                } else {
+                    let low = med;
+                    let high = med;
+                }
+            }
+        }
+
+        return low;
+    }
+
+    /** Returns the greater number. */
+    function int max(int a, int b) {
+        if (a > b) {
+            return a;
+        }
+        return b;
+    }
+
+    /** Returns the smaller number. */
+    function int min(int a, int b) {
+        if (a < b) {
+            return a;
+        }
+        return b;
+    }
+}

@@ -1,0 +1,69 @@
+// This file is part of nand2tetris, as taught in The Hebrew University,
+// and was written by Aviv Yaish, and is published under the Creative 
+// Common Attribution-NonCommercial-ShareAlike 3.0 Unported License 
+// https://creativecommons.org/licenses/by-nc-sa/3.0/
+
+// This chip is an extension of the regular CPU that uses the extended ALU.
+// If instruction[15]==0 or (instruction[14] and instruction[13] equals 1)
+// the CpuMul behave exactly as the same as the regular CPU.
+// If the instruction is a c-instruction and instruction[14] == 0, the chip will 
+// behave as follows:
+//  Instruction  | 12 | 11 | 10 |
+// ______________________________
+// dest=D<<;jump | 0  | 1  | 1  |
+// dest=A<<;jump | 0  | 1  | 0  |
+// dest=M<<;jump | 1  | 1  | 0  |
+// dest=D>>;jump | 0  | 0  | 1  |
+// dest=A>>;jump | 0  | 0  | 0  |
+// dest=M>>;jump | 1  | 0  | 0  |
+
+CHIP CpuMul {
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset=1) or continue executing
+                         // the current program (reset=0).
+    OUT outM[16],        // M value output
+        writeM,          // Write into M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+    
+    PARTS:
+    // Put you code here:
+	And(a = instruction[15], b= instruction[13], out = tmp);
+	Not(in = instruction[14], out = tmp2);
+	Nand(a = tmp, b = tmp2, out = sft);
+	
+	Mux16(a=aOut, b=inM, sel=instruction[12], out=secondInp);
+    
+    // Call the ALU
+    ExtendAlu(x=dOut, y=secondInp, instruction[0..5] = instruction[6..11], instruction[8] = sft,
+		out=loader, out=outM,
+		zr=zeroFlag,
+		ng=negFlag);
+
+    // Set AMD as required
+    Mux16(a=instruction, b=loader, sel=instruction[15], out=loaderA);
+    Not(in=instruction[15], out=ninz);
+    Or(a=instruction[5], b=ninz, out=loadA);
+    ARegister(in=loaderA, load=loadA, out=aOut, out[0..14]=addressM); 
+    And(a=instruction[4], b=instruction[15], out=loadD); 
+    DRegister(in=loader, load=loadD, out=dOut);
+    And(a=instruction[3], b=instruction[15], out=writeM);
+    
+    // Set PC as required
+    And(a=negFlag, b=instruction[2], out=isLess);
+    And(a=zeroFlag, b=instruction[1], out=isEq);
+    Or(a=isLess, b=isEq, out=sout);
+    Not(in=negFlag, out=isGeq);
+    Not(in=zeroFlag, out=isDiff);
+    And(a=isGeq, b=isDiff, out=isGrtT);
+    And(a=isGrtT, b=instruction[0], out=isGrt);
+    Or(a=sout, b=isGrt, out=toLoadTmp);
+    And(a=toLoadTmp, b=instruction[15], out=toLoadPC);
+
+
+    PC(in=aOut, load=toLoadPC, inc=true, reset=reset, out[0..14]=pc);
+	
+	
+}
